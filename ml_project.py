@@ -783,7 +783,7 @@ if app_mode == 'SHAP ⚙️':
     shap_values = explainer(X_train)
 
     st_shap(shap.plots.waterfall(shap_values[0]), height=500)
-    st_shap(shap.plots.beeswarm(shap_values), height=500)
+    st_shap(shap.plots.beeswarm(shap_values[0]), height=500)
 
 
 
@@ -916,9 +916,9 @@ if __name__=='__main__':
 st.markdown(" ")
 st.markdown("### 👨🏼‍💻 **App Contributors:** ")
 
-coln, coln2 = st.columns([1,5])
+coln = st.columns([1,5])
 coln.image(['images/gaetan.png'],width = 120,caption=["Gaëtan Brison"])
-coln2.image(['images/shre.jpg'], width = 160,caption=["Shreshtha Shaurya"])
+
 
 
 st.markdown(f"####  Link to Project Website [here]({'https://github.com/NYU-DS-4-Everyone/Linear-Regression-App'}) 🚀 ")
@@ -983,7 +983,7 @@ def layout(*args):
 def footer2():
     myargs = [
         "👨🏼‍💻 Made by ",
-        link("https://github.com/NYU-DS-4-Everyone", "NYU - Professor Gaëtan Brison and Shreshtha Shaurya"),
+        link("https://github.com/NYU-DS-4-Everyone", "NYU - Gaëtan Brison"),
         "🚀"
     ]
     layout(*myargs)
