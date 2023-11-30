@@ -916,8 +916,8 @@ if __name__=='__main__':
 st.markdown(" ")
 st.markdown("### 👨🏼‍💻 **App Contributors:** ")
 
-coln = st.columns([1,5])
-coln.image(['images/gaetan.png'],width = 120,caption=["Gaëtan Brison"])
+
+st.image(['images/gaetan.png'],width = 120,caption=["Gaëtan Brison"])
 
 
 
