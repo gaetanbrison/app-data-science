@@ -85,8 +85,8 @@ def main():
     # hide the footer
     hide_header_footer()
 
-image_nyu = Image.open('images/nyu.png')
-st.image(image_nyu, width=100)
+#image_nyu = Image.open('images/nyu.png')
+#st.image(image_nyu, width=100)
 
 
 
@@ -921,8 +921,8 @@ st.image(['images/gaetan.png'],width = 120,caption=["Gaëtan Brison"])
 
 
 
-st.markdown(f"####  Link to Project Website [here]({'https://github.com/NYU-DS-4-Everyone/Linear-Regression-App'}) 🚀 ")
-st.markdown(f"####  Feel free to contribute to the app and give a ⭐️")
+#st.markdown(f"####  Link to Project Website [here]({'https://github.com/NYU-DS-4-Everyone/Linear-Regression-App'}) 🚀 ")
+#st.markdown(f"####  Feel free to contribute to the app and give a ⭐️")
 
 
 def image(src_as_string, **style):
@@ -983,7 +983,7 @@ def layout(*args):
 def footer2():
     myargs = [
         "👨🏼‍💻 Made by ",
-        link("https://github.com/NYU-DS-4-Everyone", "NYU - Gaëtan Brison"),
+        link("https://www.linkedin.com/in/gaetan-brison/", "Gaëtan Brison"),
         "🚀"
     ]
     layout(*myargs)
