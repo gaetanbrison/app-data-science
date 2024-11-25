@@ -765,74 +765,74 @@ if app_mode == 'MLFlow2 ☁️':
     from sklearn.neighbors import KNeighborsClassifier
     from urllib.parse import urlparse
     def train_and_evaluate_with_mlflow(model, param_grid, X_train, X_test, y_train, y_test, model_name, **kwargs):
-    """
-    Train a machine learning model using GridSearchCV and evaluate its performance,
-    with all results and the model itself logged to MLflow.
-    Parameters:
-    - model: The machine learning model to train.
-    - param_grid: Dictionary with parameters names as keys and lists of parameter settings to try as values.
-    - X_train: Training data features.
-    - X_test: Testing data features.
-    - y_train: Training data labels.
-    - y_test: Testing data labels.
-    - model_name: The name of the model (for MLflow logging).
-    - **kwargs: Additional keyword arguments to pass to the GridSearchCV.
-    Returns:
-    - The best estimator from GridSearchCV.
-    """
-    with mlflow.start_run():
-        mlflow.set_experiment("Student Status Prediction")
-
-        # Perform grid search to find the best parameters
-        grid_search = GridSearchCV(estimator=model, param_grid=param_grid, **kwargs)
-        grid_search.fit(X_train, y_train)
-
-        # Extract information from the grid search for logging
-        cv_results_df = pd.DataFrame(grid_search.cv_results_)
-
-        # Get the top 5 best parameter combinations by rank_test_score
-        top5_results = cv_results_df.sort_values('rank_test_score').head(5)
-
-        # Log the best parameters
-        best_params = grid_search.best_params_
-        mlflow.log_params(best_params)
-
-        # Evaluate the model
-        best_model = grid_search.best_estimator_
-        y_pred = best_model.predict(X_test)
-
-        # Log the performance metrics
-        mlflow.log_metric("accuracy", accuracy_score(y_test, y_pred))
-        mlflow.log_metric("precision", precision_score(y_test, y_pred, average='weighted'))
-        mlflow.log_metric("recall", recall_score(y_test, y_pred, average='weighted'))
-        mlflow.log_metric("f1", f1_score(y_test, y_pred, average='weighted'))
-
-        # Log the top 5 best results as an artifact
-        top5_results.to_csv("top5_results.csv", index=False)
-        mlflow.log_artifact("top5_results.csv")
-
-        # Log the best model in MLflow
-        mlflow.sklearn.log_model(best_model, model_name)
-
-        # For remote server only (Dagshub)
-        remote_server_uri = "https://dagshub.com/Danjari/Dropout.mlflow"
-        mlflow.set_tracking_uri(remote_server_uri)
-
-
-
-        tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme
-
-        # Model registry does not work with file store
-        if tracking_url_type_store != "file":
-            # Register the model
-            # There are other ways to use the Model Registry, which depends on the use case,
-            # please refer to the doc for more information:
-            # https://mlflow.org/docs/latest/model-registry.html#api-workflow
-            mlflow.sklearn.log_model(best_model, "model", registered_model_name=model_name)
-        else:
-            mlflow.sklearn.log_model(best_model, "model")
-
-        return best_model
+        """
+        Train a machine learning model using GridSearchCV and evaluate its performance,
+        with all results and the model itself logged to MLflow.
+        Parameters:
+        - model: The machine learning model to train.
+        - param_grid: Dictionary with parameters names as keys and lists of parameter settings to try as values.
+        - X_train: Training data features.
+        - X_test: Testing data features.
+        - y_train: Training data labels.
+        - y_test: Testing data labels.
+        - model_name: The name of the model (for MLflow logging).
+        - **kwargs: Additional keyword arguments to pass to the GridSearchCV.
+        Returns:
+        - The best estimator from GridSearchCV.
+        """
+        with mlflow.start_run():
+            mlflow.set_experiment("Student Status Prediction")
+    
+            # Perform grid search to find the best parameters
+            grid_search = GridSearchCV(estimator=model, param_grid=param_grid, **kwargs)
+            grid_search.fit(X_train, y_train)
+    
+            # Extract information from the grid search for logging
+            cv_results_df = pd.DataFrame(grid_search.cv_results_)
+    
+            # Get the top 5 best parameter combinations by rank_test_score
+            top5_results = cv_results_df.sort_values('rank_test_score').head(5)
+    
+            # Log the best parameters
+            best_params = grid_search.best_params_
+            mlflow.log_params(best_params)
+    
+            # Evaluate the model
+            best_model = grid_search.best_estimator_
+            y_pred = best_model.predict(X_test)
+    
+            # Log the performance metrics
+            mlflow.log_metric("accuracy", accuracy_score(y_test, y_pred))
+            mlflow.log_metric("precision", precision_score(y_test, y_pred, average='weighted'))
+            mlflow.log_metric("recall", recall_score(y_test, y_pred, average='weighted'))
+            mlflow.log_metric("f1", f1_score(y_test, y_pred, average='weighted'))
+    
+            # Log the top 5 best results as an artifact
+            top5_results.to_csv("top5_results.csv", index=False)
+            mlflow.log_artifact("top5_results.csv")
+    
+            # Log the best model in MLflow
+            mlflow.sklearn.log_model(best_model, model_name)
+    
+            # For remote server only (Dagshub)
+            remote_server_uri = "https://dagshub.com/Danjari/Dropout.mlflow"
+            mlflow.set_tracking_uri(remote_server_uri)
+    
+    
+    
+            tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme
+    
+            # Model registry does not work with file store
+            if tracking_url_type_store != "file":
+                # Register the model
+                # There are other ways to use the Model Registry, which depends on the use case,
+                # please refer to the doc for more information:
+                # https://mlflow.org/docs/latest/model-registry.html#api-workflow
+                mlflow.sklearn.log_model(best_model, "model", registered_model_name=model_name)
+            else:
+                mlflow.sklearn.log_model(best_model, "model")
+    
+            return best_model
 
 
 
