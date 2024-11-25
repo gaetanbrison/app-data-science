@@ -776,7 +776,7 @@ if app_mode == 'MLFlow2 ☁️':
     from sklearn.model_selection import GridSearchCV
     import pandas as pd
     from sklearn.tree import DecisionTreeClassifier
-    from main import X_train, X_test, y_train, y_test
+    #from main import X_train, X_test, y_train, y_test
     from sklearn.neighbors import KNeighborsClassifier
     from urllib.parse import urlparse
     def train_and_evaluate_with_mlflow(model, param_grid, X_train, X_test, y_train, y_test, model_name, **kwargs):
