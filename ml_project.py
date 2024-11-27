@@ -760,7 +760,9 @@ if app_mode == 'MLFlow2 ☁️':
     import mlflow
     import streamlit_shadcn_ui as ui
 
-    dagshub.init("new-app","gaetan.brison",mlflow=True)
+    
+
+    dagshub.init(repo_owner='gaetan.brison', repo_name='app-data-science', mlflow=True)
     mlflow.start_run()
 
     # training your model
@@ -773,7 +775,7 @@ if app_mode == 'MLFlow2 ☁️':
 
     st.title("ML Flow Visualization")
 
-    ui.link_button(text="👉 Go to ML Flow",url="https://dagshub.com/gaetan.brison/new-app.mlflow/#/",key="link_btnmlflow")
+    ui.link_button(text="👉 Go to ML Flow",url="https://dagshub.com/gaetan.brison/app-data-science.mlflow/#/",key="link_btnmlflow")
 
 
 
