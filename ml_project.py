@@ -762,15 +762,15 @@ if app_mode == 'MLFlow2 ☁️':
 
     
 
-    dagshub.init(repo_owner='gaetan.brison', repo_name='app-data-science', mlflow=True)
-    mlflow.start_run()
+    #dagshub.init(repo_owner='gaetan.brison', repo_name='app-data-science', mlflow=True)
+    #mlflow.start_run()
 
     # training your model
 
-    mlflow.log_param("parameter name","value")
-    mlflow.log_metric("Accuracy",0.9)
+    #mlflow.log_param("parameter name","value")
+    #mlflow.log_metric("Accuracy",0.9)
 
-    mlflow.end_run()
+    #mlflow.end_run()
 
 
     st.title("ML Flow Visualization")
