@@ -755,27 +755,13 @@ if app_mode == 'Deployment 🚀':
 
 ## page 5 bis 
 if app_mode == 'MLFlow2 ☁️':
-    st.write("Hyperparameter tuning")
+    st.title("Hyperparameter tuning")
     import dagshub
     import mlflow
     import streamlit_shadcn_ui as ui
 
-    
-
-    #dagshub.init(repo_owner='gaetan.brison', repo_name='app-data-science', mlflow=True)
-    #mlflow.start_run()
-
-    # training your model
-
-    #mlflow.log_param("parameter name","value")
-    #mlflow.log_metric("Accuracy",0.9)
-
-    #mlflow.end_run()
-
-
-    st.title("ML Flow Visualization")
-
-    ui.link_button(text="👉 Go to ML Flow",url="https://dagshub.com/gaetan.brison/app-data-science.mlflow/#/",key="link_btnmlflow")
+    mlflow_url = "https://dagshub.com/gaetan.brison/app-data-science.mlflow/#/"
+    st.components.v1.iframe(src=mlflow_url, width=1200, height=800)
 
 
 
