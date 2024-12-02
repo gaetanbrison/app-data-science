@@ -759,9 +759,7 @@ if app_mode == 'MLFlow2 ☁️':
     import dagshub
     import mlflow
     import streamlit_shadcn_ui as ui
-
-    mlflow_url = "https://dagshub.com/gaetan.brison/app-data-science.mlflow/#/"
-    st.components.v1.iframe(src=mlflow_url, width=1200, height=800)
+    ui.link_button(text="👉 Go to ML Flow",url="https://dagshub.com/gaetan.brison/app-data-science.mlflow/#/experiments/2?searchFilter=&orderByKey=attributes.start_time&orderByAsc=false&startTime=ALL&lifecycleFilter=Active&modelVersionFilter=All+Runs&datasetsFilter=W10%3D",key="link_btnmlflow")
 
 
 
