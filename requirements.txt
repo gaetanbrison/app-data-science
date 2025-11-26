@@ -90,7 +90,7 @@ streamlit-pandas-profiling
 streamlit-shap
 tableauserverclient
 tabulate
-
+wandb
 
 
 tqdm
