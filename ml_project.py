@@ -1,6 +1,6 @@
 ###############################################################
 # FULL STREAMLIT MACHINE LEARNING APP 
-# W&B ADDED — MLFLOW REMOVED — VIS FIXED — DEFAULT VARIABLES ADDED
+# W&B BUTTON • NO DEPLOYMENT • XGBOOST & RF • SHAP FIXED
 ###############################################################
 
 import base64
@@ -13,26 +13,25 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from pathlib import Path
 
-from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import StandardScaler, MinMaxScaler 
+from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from sklearn.metrics import r2_score
 from sklearn.model_selection import train_test_split
 from sklearn import metrics as mt
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+
+import xgboost as xgb
 
 import plotly.express as px
 from plotly import figure_factory
 from PIL import Image
 import shap
-
-from htbuilder import HtmlElement, div, hr, a, p, img, styles
-from htbuilder.units import percent, px
+from streamlit_shap import st_shap
 
 from streamlit_chat import message
 import openai
-
-import wandb    # REPLACES MLFLOW COMPLETELY
+import wandb
 
 
 ###############################################################
@@ -47,37 +46,27 @@ st.set_page_config(
 
 
 ###############################################################
-# SECURE W&B LOGIN
+# W&B LOGIN
 ###############################################################
 
 wandb.login(key="104b5e8c013f8478c91ae012e8fc4e732d6977b3")
 
 
 ###############################################################
-# PAGE HELPERS
+# UI HELPERS
 ###############################################################
 
 def _max_width_():
-    max_width_str = f"max-width: 1000px;"
     st.markdown(
-        f"""
+        """
         <style>
-        .reportview-container .main .block-container {{
-            {max_width_str}
-        }}
+        .reportview-container .main .block-container {
+            max-width: 1100px;
+        }
         </style>
         """,
         unsafe_allow_html=True,
     )
-
-def hide_header_footer():
-    hide_streamlit_style = """
-        <style>
-        footer {visibility: hidden;}
-        </style>
-    """
-    st.markdown(hide_header_footer, unsafe_allow_html=True)
-
 
 _max_width_()
 
@@ -91,7 +80,12 @@ st.sidebar.markdown("---")
 
 model_mode = st.sidebar.selectbox(
     '🔎 Select Model',
-    ['Linear Regression', 'Logistic Regression']
+    [
+        'Linear Regression',
+        'Logistic Regression',
+        'Random Forest',
+        'XGBoost'
+    ]
 )
 
 app_mode = st.sidebar.selectbox(
@@ -101,7 +95,6 @@ app_mode = st.sidebar.selectbox(
         'Visualization 📊',
         'Prediction 🌠',
         'W&B Tracking ☁️',
-        'Deployment 🚀',
         'SHAP ⚙️',
         'Chatbot 🤖'
     ]
@@ -128,12 +121,9 @@ def get_dataset(select_dataset):
 
 DATA_SELECT = {
     "Linear Regression": ["Income 💵", "Student Score 💯", "Wine Quality 🍷"],
-    "Logistic Regression": ["Wine Quality 🍷", "Titanic 🛳️"]
-}
-
-MODELS = {
-    "Linear Regression": LinearRegression,
-    "Logistic Regression": LogisticRegression 
+    "Logistic Regression": ["Wine Quality 🍷", "Titanic 🛳️"],
+    "Random Forest": ["Wine Quality 🍷", "Titanic 🛳️", "Income 💵"],
+    "XGBoost": ["Wine Quality 🍷", "Titanic 🛳️", "Income 💵"]
 }
 
 target_variable = {
@@ -153,13 +143,16 @@ def clean_data(select_dataset):
     df = df.copy()
 
     if select_dataset == "Student Score 💯":
-        df['Extracurricular Activities'] = df['Extracurricular Activities'].apply(lambda x: 1 if x == 'Yes' else 0)
+        df['Extracurricular Activities'] = df['Extracurricular Activities'].apply(
+            lambda x: 1 if x == 'Yes' else 0)
 
     elif select_dataset == "Income 💵":
         df = df.drop(['workclass','education','occupation','race'], axis=1)
-        df = pd.get_dummies(df, columns=['relationship','native.country','sex','marital.status'], drop_first=True)
+        df = pd.get_dummies(df,
+                            columns=['relationship','native.country','sex','marital.status'],
+                            drop_first=True)
         scaler = StandardScaler()
-        df[['capital.gain', 'capital.loss', 'hours.per.week']] = scaler.fit_transform(
+        df[['capital.gain','capital.loss','hours.per.week']] = scaler.fit_transform(
             df[['capital.gain','capital.loss','hours.per.week']]
         )
         df['income'] = df['income'].map({'<=50K':1,'>50K':0})
@@ -172,197 +165,215 @@ def clean_data(select_dataset):
 
 
 ###############################################################
+# MODEL TRAINING FUNCTION
+###############################################################
+
+def train_model(model_mode, X_train, y_train):
+    if model_mode == "Linear Regression":
+        model = LinearRegression()
+
+    elif model_mode == "Logistic Regression":
+        model = LogisticRegression(max_iter=2000)
+
+    elif model_mode == "Random Forest":
+        model = RandomForestClassifier(n_estimators=300) if y_train.nunique() <= 2 \
+            else RandomForestRegressor(n_estimators=300)
+
+    elif model_mode == "XGBoost":
+        model = xgb.XGBClassifier(eval_metric='logloss') if y_train.nunique() <= 2 \
+            else xgb.XGBRegressor()
+
+    model.fit(X_train, y_train)
+    return model
+
+
+###############################################################
 # PREDICTION FUNCTION
 ###############################################################
 
-def predict(target_choice, train_size, new_df, feature_choice):
-    x = new_df[feature_choice]
-    y = df[target_choice]
-
-    X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=train_size)
-
-    lm = MODELS[model_mode]()
-    model = lm.fit(X_train, y_train)
-    predictions = lm.predict(X_test)
-
-    return lm, X_train, y_test, predictions, model
+def predict(model, X_test):
+    return model.predict(X_test)
 
 
 ###############################################################
-# PAGE 1 — INTRODUCTION
+# 1 — INTRODUCTION
 ###############################################################
 
 if app_mode == 'Introduction 🏃':
-
-    if model_mode == "Linear Regression":
-        st.title("Linear Regression Lab 🧪")
-        st.image('./images/Linear-Regression1.webp', width=600)
-    else:
-        st.title("Logistic Regression Lab 🧪")
-        st.image('./images/Logistic-Regression.jpg', width=600)
+    st.title(model_mode + " Lab")
 
     select_data = st.sidebar.selectbox("💾 Select Dataset", DATA_SELECT[model_mode])
     select_dataset, df = get_dataset(select_data)
 
-    st.markdown("### Dataset Preview")
-    st.dataframe(df.head(10))
-    st.markdown("### Description")
+    st.subheader("Dataset Preview")
+    st.dataframe(df.head())
+
+    st.subheader("Description")
     st.dataframe(df.describe())
-    st.markdown("### Missing Values")
+
+    st.subheader("Missing Values")
     st.dataframe(df.isnull().sum())
 
 
 ###############################################################
-# PAGE 2 — VISUALIZATION (FIXED)
+# 2 — VISUALIZATION
 ###############################################################
 
 if app_mode == 'Visualization 📊':
-    st.markdown("# :violet[Visualization 📊]")
+    st.title("Visualization 📊")
 
     select_dataset, df = get_dataset(
-        st.sidebar.selectbox('💾 Select Dataset', DATA_SELECT[model_mode])
+        st.sidebar.selectbox("💾 Select Dataset", DATA_SELECT[model_mode])
     )
 
-    list_variables = df.columns
+    list_vars = df.columns
 
     symbols = st.multiselect(
         "Select two variables",
-        list_variables,
-        default=list_variables[:2]    # DEFAULT VARIABLES ADDED
+        list_vars,
+        default=list_vars[:2]
     )
 
-    tab1, tab2, tab3, tab4 = st.tabs([
-        "Bar Chart 📊",
-        "Line Chart 📈",
-        "Correlation ⛖",
-        "Pairplot 🗠"
-    ])
+    tab1, tab2, tab3, tab4 = st.tabs(
+        ["Bar Chart", "Line Chart", "Correlation", "Pairplot"]
+    )
 
     if len(symbols) == 2:
         tab1.bar_chart(df[symbols])
         tab2.line_chart(df[symbols])
 
-    df_numeric = df.select_dtypes(include=['number'])
-    corr = df_numeric.corr()
+    num_df = df.select_dtypes(include=['number'])
+    corr = num_df.corr()
 
-    fig3 = px.imshow(
+    fig_corr = px.imshow(
         corr.values,
         x=corr.columns,
         y=corr.index,
         color_continuous_scale="RdBu_r",
         origin="lower"
     )
-    tab3.plotly_chart(fig3, use_container_width=True)
+    tab3.plotly_chart(fig_corr)
 
-    df2 = df_numeric.sample(min(500, len(df_numeric)))
-    fig4 = figure_factory.create_scatterplotmatrix(df2)
-    tab4.plotly_chart(fig4, use_container_width=True)
+    fig_pair = figure_factory.create_scatterplotmatrix(num_df.sample(min(500, len(num_df))))
+    tab4.plotly_chart(fig_pair)
 
 
 ###############################################################
-# PAGE 3 — PREDICTION WITH W&B LOGGING
+# 3 — PREDICTION + W&B
 ###############################################################
 
 if app_mode == 'Prediction 🌠':
-    st.markdown("# :violet[Prediction 🌠]")
+    st.title("Prediction 🌠")
 
-    select_ds = st.sidebar.selectbox('💾 Select Dataset', DATA_SELECT[model_mode])
+    select_ds = st.sidebar.selectbox("💾 Select Dataset", DATA_SELECT[model_mode])
     select_dataset, df = get_dataset(select_ds)
     df = clean_data(select_dataset)
 
-    target_choice = target_variable[select_ds]
+    target = target_variable[select_ds]
+    X = df.drop(columns=[target])
+    y = df[target]
 
-    new_df = df.drop(target_choice, axis=1)
-    list_var = new_df.columns
+    features = st.multiselect("Select Features", X.columns, default=X.columns)
+    X = X[features]
 
-    feature_choice = st.multiselect("Select Features", list_var, default=list_var)
-    train_size = st.sidebar.number_input("Train Size", 0.1, 0.9, 0.7)
+    test_size = st.sidebar.number_input("Train Size", 0.1, 0.9, 0.7)
 
-    track_wandb = st.checkbox("Track with W&B? 🚀")
+    track_wandb = st.checkbox("Track experiment with W&B? 🚀")
 
-    start_train = st.button("Start Training")
-    if not start_train:
+    start = st.button("Train Model")
+    if not start:
         st.stop()
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=test_size, random_state=42
+    )
 
     if track_wandb:
         run = wandb.init(
             project="NYU",
             entity="gaetan-brison",
-            name=f"{model_mode}-{select_ds}"
+            name=f"{model_mode}-{select_ds}",
+            config={
+                "model": model_mode,
+                "dataset": select_ds,
+                "features": list(features)
+            }
         )
 
-    lm, X_train, y_test, predictions, model = predict(target_choice, train_size, new_df, feature_choice)
+    model = train_model(model_mode, X_train, y_train)
+    preds = predict(model, X_test)
 
-    st.subheader("📈 Model Performance")
+    st.subheader("Results")
 
-    if model_mode == "Linear Regression":
-        mae = mt.mean_absolute_error(y_test, predictions)
-        mse = mt.mean_squared_error(y_test, predictions)
-        r2 = mt.r2_score(y_test, predictions)
-
+    if y.nunique() > 2:
+        mae = mt.mean_absolute_error(y_test, preds)
+        r2 = r2_score(y_test, preds)
         st.write("MAE:", mae)
-        st.write("MSE:", mse)
         st.write("R²:", r2)
-
         if track_wandb:
-            wandb.log({"MAE": mae, "MSE": mse, "R2": r2})
-
+            wandb.log({"MAE": mae, "R2": r2})
     else:
-        acc = accuracy_score(y_test, predictions)
-        f1 = f1_score(y_test, predictions, average='weighted')
-        prec = precision_score(y_test, predictions, average='weighted')
-        rec = recall_score(y_test, predictions, average='weighted')
-
+        acc = accuracy_score(y_test, preds)
+        f1 = f1_score(y_test, preds, average='weighted')
         st.write("Accuracy:", acc)
         st.write("F1 Score:", f1)
-        st.write("Precision:", prec)
-        st.write("Recall:", rec)
-
         if track_wandb:
-            wandb.log({
-                "accuracy": acc,
-                "f1_score": f1,
-                "precision": prec,
-                "recall": rec
-            })
+            wandb.log({"Accuracy": acc, "F1": f1})
 
     if track_wandb:
         wandb.finish()
 
 
 ###############################################################
-# PAGE 4 — W&B TRACKING PAGE
+# 4 — W&B Dashboard Button
 ###############################################################
 
 if app_mode == "W&B Tracking ☁️":
-    st.title("Weights & Biases Tracking ☁️")
-    st.info("Your experiment results are automatically synced to W&B.")
+    st.title("🏋️ Weights & Biases Experiment Tracking")
 
-    st.markdown("### 📌 Visit your dashboard:")
-    st.markdown("👉 https://wandb.ai/gaetan-brison/NYU?nw=nwusergaetanbrison")
+    st.info("Click the button below to view your dashboard:")
 
-
-###############################################################
-# PAGE 5 — DEPLOYMENT
-###############################################################
-
-if app_mode == "Deployment 🚀":
-    st.title("Model Deployment 🚀")
-    st.info("Deployment engine unchanged — upload your trained model to serve predictions.")
+    st.link_button(
+        "🔗 Open W&B Dashboard",
+        "https://wandb.ai/gaetan-brison/NYU?nw=nwusergaetanbrison"
+    )
 
 
 ###############################################################
-# PAGE 6 — SHAP
+# 5 — SHAP PAGE
 ###############################################################
-
-from streamlit_shap import st_shap
 
 if app_mode == "SHAP ⚙️":
-    st.title("SHAP Model Explanation ⚙️")
+    st.title("SHAP Model Explainability ⚙️")
+
+    st.warning("Run a Prediction first so the model & data load here.")
+
+    select_ds = st.sidebar.selectbox("Dataset", DATA_SELECT[model_mode])
+    select_dataset, df = get_dataset(select_ds)
+    df = clean_data(select_dataset)
+
+    target = target_variable[select_ds]
+    X = df.drop(columns=[target])
+    y = df[target]
+
+    model = train_model(model_mode, X, y)
+
+    try:
+        explainer = shap.Explainer(model, X.sample(100))
+        shap_values = explainer(X.sample(100))
+
+        st.subheader("SHAP Summary Plot")
+        st_shap(shap.plots.beeswarm(shap_values), height=600)
+
+        st.subheader("First Prediction Waterfall")
+        st_shap(shap.plots.waterfall(shap_values[0]), height=600)
+
+    except Exception as e:
+        st.error(f"SHAP failed: {e}")
 
 
 ###############################################################
-# PAGE 7 — CHATBOT
+# CHATBOT
 ###############################################################
 
 if app_mode == "Chatbot 🤖":
