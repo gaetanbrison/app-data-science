@@ -58,7 +58,7 @@ st.set_page_config(
 # W&B LOGIN — secured using Streamlit secrets
 #########################################################
 
-wandb.login(key=st.secrets.wandb.key)
+wandb.login(key="104b5e8c013f8478c91ae012e8fc4e732d6977b3")
 
 
 #########################################################
