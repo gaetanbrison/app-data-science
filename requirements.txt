@@ -106,3 +106,5 @@ Werkzeug
 yarl
 ydata-profiling
 zipp
+
+xgboost
